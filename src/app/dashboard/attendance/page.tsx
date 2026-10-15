@@ -21,7 +21,7 @@ export default async function AttendancePage() {
     .maybeSingle()
 
   const isSuperAdmin = profile?.role === 'super_admin' || user.email === 'admin@nexa.com'
-  const isInstitution = profile?.role === 'institution' || isSuperAdmin
+  const isInstitution = profile?.role === 'institution'
   let institutionId = profile?.institution_id || null
 
   if (isInstitution && !institutionId) {
@@ -39,12 +39,15 @@ export default async function AttendancePage() {
     .select('id, name, subject, grade')
     .order('name', { ascending: true })
 
-  if (!isSuperAdmin) {
-    if (isInstitution && institutionId) {
-      classesQuery = classesQuery.eq('institution_id', institutionId)
-    } else {
-      classesQuery = classesQuery.eq('teacher_id', user.id)
-    }
+  if (isSuperAdmin) {
+    // all classes
+  } else if (isInstitution && institutionId) {
+    classesQuery = classesQuery.eq('institution_id', institutionId)
+  } else {
+    // Teacher: solo classes or assigned classes
+    classesQuery = classesQuery.or(
+      `assigned_teacher_id.eq.${user.id},and(teacher_id.eq.${user.id},institution_id.is.null)`
+    )
   }
 
   const { data: classesData, error: classesError } = await classesQuery

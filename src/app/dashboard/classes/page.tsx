@@ -15,12 +15,12 @@ export default async function ClassesPage() {
   // 1. Fetch user profile
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, role, institution_id')
+    .select('id, role, institution_id, full_name')
     .eq('id', user.id)
     .maybeSingle()
 
   const isSuperAdmin = profile?.role === 'super_admin' || user.email === 'admin@nexa.com'
-  const isInstitution = profile?.role === 'institution' || isSuperAdmin
+  const isInstitution = profile?.role === 'institution'
   let institutionId = profile?.institution_id || null
 
   if (isInstitution && !institutionId) {
@@ -32,8 +32,8 @@ export default async function ClassesPage() {
     if (inst) institutionId = inst.id
   }
 
-  // 2. Fetch classes (without invalid cross-schema relationship)
-  const { data: classesData, error: classesError } = await supabase
+  // 2. Fetch classes based on user role & multi-institute / solo hierarchy
+  let classesQuery = supabase
     .from('classes')
     .select(`
       id,
@@ -46,11 +46,26 @@ export default async function ClassesPage() {
       fee_type,
       institution_id,
       assigned_teacher_id,
+      teacher_id,
       created_at,
-      institutions ( name ),
+      institutions ( id, name ),
       class_students ( id )
     `)
     .order('created_at', { ascending: false })
+
+  if (isSuperAdmin) {
+    // Super Admin sees all classes across the platform
+  } else if (isInstitution && institutionId) {
+    // Institution admin sees all classes under their institution
+    classesQuery = classesQuery.eq('institution_id', institutionId)
+  } else {
+    // Teacher: query solo classes (institution_id IS NULL) OR classes assigned in any registered institution
+    classesQuery = classesQuery.or(
+      `assigned_teacher_id.eq.${user.id},and(teacher_id.eq.${user.id},institution_id.is.null)`
+    )
+  }
+
+  const { data: classesData, error: classesError } = await classesQuery
 
   if (classesError) {
     console.error('Error fetching classes:', classesError)
@@ -70,7 +85,7 @@ export default async function ClassesPage() {
 
   const teacherMap = Object.fromEntries(teachers.map(t => [t.id, t.full_name]))
 
-  // 4. Fetch institution or teacher's students for quick enrollment in classes
+  // 4. Fetch students for quick enrollment dropdown
   let studentsQuery = supabase
     .from('students')
     .select('id, first_name, last_name, phone_number, school, serial_no')
@@ -95,30 +110,46 @@ export default async function ClassesPage() {
     serial_no: s.serial_no,
   }))
 
-  const initialClasses = (classesData || []).map((cls: any) => ({
-    id: cls.id,
-    name: cls.name,
-    subject: cls.subject,
-    grade: cls.grade,
-    schedule_day: cls.schedule_day,
-    schedule_time: cls.schedule_time,
-    fee: cls.fee,
-    fee_type: cls.fee_type || 'monthly',
-    institution_id: cls.institution_id,
-    assigned_teacher_id: cls.assigned_teacher_id,
-    institutions: cls.institutions,
-    assigned_teacher: cls.assigned_teacher_id
-      ? { id: cls.assigned_teacher_id, full_name: teacherMap[cls.assigned_teacher_id] || 'Instructor' }
-      : null,
-    class_students: cls.class_students || [],
-  }))
+  // Extract distinct registered institutes for the teacher
+  const institutesMap = new Map<string, { id: string; name: string }>()
+  for (const c of classesData || []) {
+    const inst = Array.isArray(c.institutions) ? c.institutions[0] : c.institutions
+    if (inst && inst.id && inst.name) {
+      institutesMap.set(inst.id, { id: inst.id, name: inst.name })
+    }
+  }
+  const registeredInstitutes = Array.from(institutesMap.values())
+
+  const initialClasses = (classesData || []).map((cls: any) => {
+    const inst = Array.isArray(cls.institutions) ? cls.institutions[0] : cls.institutions
+    return {
+      id: cls.id,
+      name: cls.name,
+      subject: cls.subject,
+      grade: cls.grade,
+      schedule_day: cls.schedule_day,
+      schedule_time: cls.schedule_time,
+      fee: cls.fee,
+      fee_type: cls.fee_type || 'monthly',
+      institution_id: cls.institution_id,
+      assigned_teacher_id: cls.assigned_teacher_id,
+      teacher_id: cls.teacher_id,
+      institutions: inst,
+      assigned_teacher: cls.assigned_teacher_id
+        ? { id: cls.assigned_teacher_id, full_name: teacherMap[cls.assigned_teacher_id] || 'Instructor' }
+        : null,
+      class_students: cls.class_students || [],
+    }
+  })
 
   return (
     <ClassManagementClient
       initialClasses={initialClasses}
       teachers={teachers}
       allStudents={allStudents}
-      isInstitution={isInstitution}
+      isInstitution={isInstitution || isSuperAdmin}
+      userRole={profile?.role || (isSuperAdmin ? 'super_admin' : 'solo_teacher')}
+      registeredInstitutes={registeredInstitutes}
     />
   )
 }

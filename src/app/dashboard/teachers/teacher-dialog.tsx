@@ -24,7 +24,7 @@ import {
   GraduationCap,
   Mail,
   Lock,
-  User,
+  Phone,
   BookOpen,
   Check,
   Copy,
@@ -55,48 +55,34 @@ export default function TeacherDialog({
 }: TeacherDialogProps) {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [initialClassId, setInitialClassId] = useState('none')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // Success state with generated credentials
-  const [createdCredentials, setCreatedCredentials] = useState<{
+  const [successInfo, setSuccessInfo] = useState<{
     name: string
     email: string
     password: string
+    phoneNumber?: string
+    isExisting?: boolean
+    message?: string
   } | null>(null)
   const [copied, setCopied] = useState(false)
 
-  function handleClose() {
-    onOpenChange(false)
-    // Reset state after transition
-    setTimeout(() => {
-      setFirstName('')
-      setLastName('')
-      setEmail('')
-      setPassword('')
-      setInitialClassId('none')
-      setError(null)
-      setCreatedCredentials(null)
-      setCopied(false)
-    }, 200)
-  }
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError(null)
+    setLoading(true)
 
     const formData = new FormData()
     formData.append('first_name', firstName)
     formData.append('last_name', lastName)
+    formData.append('phone_number', phoneNumber)
     formData.append('email', email)
-    if (password.trim()) {
-      formData.append('password', password.trim())
-    }
+    formData.append('password', password)
     formData.append('initial_class_id', initialClassId)
 
     const res = await registerTeacher(formData)
@@ -105,59 +91,73 @@ export default function TeacherDialog({
     if (res.error) {
       setError(res.error)
     } else if (res.credentials) {
-      setCreatedCredentials(res.credentials)
+      setSuccessInfo({
+        name: res.credentials.name,
+        email: res.credentials.email,
+        password: res.credentials.password,
+        phoneNumber: res.credentials.phoneNumber,
+        isExisting: res.isExistingTeacher,
+        message: res.message,
+      })
       if (onSuccess) onSuccess()
     }
   }
 
-  function handleCopyCredentials() {
-    if (!createdCredentials) return
-    const text = `Nexa-Edu Faculty Account Details:
-Name: ${createdCredentials.name}
-Email: ${createdCredentials.email}
-Temporary Password: ${createdCredentials.password}
-Login Portal: ${window.location.origin}/login`
-
+  const handleCopyCredentials = () => {
+    if (!successInfo) return
+    const text = `Nexa-Edu Instructor Credentials:\nName: ${successInfo.name}\nPhone: ${successInfo.phoneNumber || 'N/A'}\nEmail: ${successInfo.email}\nPassword: ${successInfo.password}\nLogin: ${window.location.origin}/login`
     navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2500)
   }
 
+  const handleClose = () => {
+    setFirstName('')
+    setLastName('')
+    setPhoneNumber('')
+    setEmail('')
+    setPassword('')
+    setInitialClassId('none')
+    setError(null)
+    setSuccessInfo(null)
+    onOpenChange(false)
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        {!createdCredentials ? (
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-6">
+        {!successInfo ? (
           <>
             <DialogHeader>
               <div className="flex items-center gap-2 mb-1">
-                <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                  <GraduationCap className="h-4 w-4" />
-                </div>
-                <DialogTitle className="text-xl font-bold text-slate-800">
-                  Register Faculty Member
+                <span className="p-2 rounded-xl bg-violet-100 text-violet-700">
+                  <GraduationCap className="h-5 w-5" />
+                </span>
+                <DialogTitle className="text-xl font-bold text-slate-900">
+                  Register Teacher / Instructor
                 </DialogTitle>
               </div>
-              <DialogDescription className="text-slate-500 text-sm">
-                Instantly create a teacher account under your institution. You can provide or auto-generate a temporary password.
+              <DialogDescription className="text-xs text-slate-500">
+                Teachers are recognized by their <strong>contact number</strong> across solo classes and multiple institutes.
               </DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-              {error && (
-                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
-                  {error}
-                </div>
-              )}
+            {error && (
+              <div className="p-3 text-xs bg-red-50 text-red-700 rounded-xl border border-red-200">
+                {error}
+              </div>
+            )}
 
-              {/* First & Last Name */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+              {/* Name Fields */}
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="first_name" className="text-xs font-semibold text-slate-700">
                     First Name *
                   </Label>
                   <Input
                     id="first_name"
-                    placeholder="e.g. Priyantha"
+                    placeholder="e.g. Nalika"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required
@@ -171,13 +171,40 @@ Login Portal: ${window.location.origin}/login`
                   </Label>
                   <Input
                     id="last_name"
-                    placeholder="e.g. Silva"
+                    placeholder="e.g. Wanigasekara"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required
                     className="h-10 text-sm rounded-xl"
                   />
                 </div>
+              </div>
+
+              {/* Contact / Phone Number (Primary Key) */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="phone_number" className="text-xs font-semibold text-slate-700">
+                    Contact / Mobile Number *
+                  </Label>
+                  <span className="text-[10px] text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    Primary Teacher ID
+                  </span>
+                </div>
+                <div className="relative">
+                  <Phone className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="phone_number"
+                    type="tel"
+                    placeholder="e.g. 0710337936"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    required
+                    className="pl-10 h-10 text-sm rounded-xl font-mono"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 leading-tight">
+                  Teachers doing solo classes or teaching at other institutes will be recognized with this mobile number and linked to your institute without duplicate accounts.
+                </p>
               </div>
 
               {/* Email Address */}
@@ -199,15 +226,13 @@ Login Portal: ${window.location.origin}/login`
                 </div>
               </div>
 
-              {/* Password (Optional / Auto-generated) */}
+              {/* Password */}
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
                   <Label htmlFor="password" className="text-xs font-semibold text-slate-700">
-                    Temporary Password (Optional)
+                    Password (Optional)
                   </Label>
-                  <span className="text-[11px] text-slate-400">
-                    Leave blank to auto-generate
-                  </span>
+                  <span className="text-[11px] text-slate-400">Leave blank to auto-generate</span>
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
@@ -220,9 +245,6 @@ Login Portal: ${window.location.origin}/login`
                     className="pl-10 h-10 text-sm rounded-xl font-mono"
                   />
                 </div>
-                <p className="text-[11px] text-slate-400">
-                  If left empty, a temporary password like <span className="font-semibold text-slate-600">{firstName ? `${firstName.toLowerCase()}2026` : 'teacher2026'}</span> will be generated.
-                </p>
               </div>
 
               {/* Initial Class Assignment */}
@@ -266,27 +288,27 @@ Login Portal: ${window.location.origin}/login`
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating Account...
+                      Processing...
                     </>
                   ) : (
-                    'Register Teacher'
+                    'Register / Link Teacher'
                   )}
                 </Button>
               </DialogFooter>
             </form>
           </>
         ) : (
-          /* Success Screen with Credentials */
+          /* Success Screen */
           <div className="space-y-4 py-2">
             <div className="flex flex-col items-center text-center">
               <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-2 shadow-sm">
                 <ShieldCheck className="h-6 w-6" />
               </div>
               <DialogTitle className="text-xl font-bold text-slate-900">
-                Teacher Account Created!
+                {successInfo.isExisting ? 'Teacher Linked Successfully!' : 'Teacher Account Created!'}
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500 mt-1 max-w-sm">
-                The account has been linked to your institution. Share these login credentials with the instructor:
+                {successInfo.message || 'The instructor is now linked to your institute and can access their assigned classes.'}
               </DialogDescription>
             </div>
 
@@ -294,16 +316,22 @@ Login Portal: ${window.location.origin}/login`
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
               <div className="flex justify-between items-center text-xs">
                 <span className="text-slate-500">Instructor Name:</span>
-                <span className="font-bold text-slate-800">{createdCredentials.name}</span>
+                <span className="font-bold text-slate-800">{successInfo.name}</span>
               </div>
+              {successInfo.phoneNumber && (
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500">Contact Number:</span>
+                  <span className="font-bold text-blue-600 font-mono">{successInfo.phoneNumber}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center text-xs">
                 <span className="text-slate-500">Email Address:</span>
-                <span className="font-bold text-slate-800 font-mono">{createdCredentials.email}</span>
+                <span className="font-bold text-slate-800 font-mono">{successInfo.email}</span>
               </div>
               <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500">Temporary Password:</span>
+                <span className="text-slate-500">Access Password:</span>
                 <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-mono">
-                  {createdCredentials.password}
+                  {successInfo.password}
                 </span>
               </div>
             </div>
@@ -318,12 +346,12 @@ Login Portal: ${window.location.origin}/login`
                 {copied ? (
                   <>
                     <Check className="h-4 w-4 mr-1.5 text-emerald-600" />
-                    Copied to Clipboard!
+                    Copied!
                   </>
                 ) : (
                   <>
                     <Copy className="h-4 w-4 mr-1.5 text-slate-600" />
-                    Copy Login Details
+                    Copy Details
                   </>
                 )}
               </Button>
