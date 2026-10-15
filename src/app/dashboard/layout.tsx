@@ -16,6 +16,7 @@ import {
   BarChart3,
   Crown,
   UserCheck,
+  CalendarCheck2,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -142,6 +143,11 @@ export default async function DashboardLayout({
               href="/dashboard/classes"
               icon={<BookOpen className="h-4 w-4" />}
               label="Classes & Batches"
+            />
+            <SidebarNavLink
+              href="/dashboard/attendance"
+              icon={<CalendarCheck2 className="h-4 w-4" />}
+              label="Attendance Register"
             />
             <SidebarNavLink
               href="/dashboard/students"
