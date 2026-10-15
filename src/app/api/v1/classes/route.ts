@@ -32,8 +32,7 @@ export async function GET(req: NextRequest) {
         assigned_teacher_id,
         created_at,
         institutions ( id, name ),
-        assigned_teacher:profiles!assigned_teacher_id ( id, full_name ),
-        class_students ( id )
+                class_students ( id )
       `)
       .order('created_at', { ascending: false })
 
@@ -55,7 +54,7 @@ export async function GET(req: NextRequest) {
       institutionId: c.institution_id,
       institutionName: c.institutions?.name || null,
       assignedTeacherId: c.assigned_teacher_id,
-      assignedTeacherName: c.assigned_teacher?.full_name || null,
+      assignedTeacherName: null,
       enrolledCount: c.class_students?.length ?? 0,
       createdAt: c.created_at,
     }))

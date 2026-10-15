@@ -30,8 +30,7 @@ export async function GET(
         assigned_teacher_id,
         created_at,
         institutions ( id, name ),
-        assigned_teacher:profiles!assigned_teacher_id ( id, full_name ),
-        class_students (
+                class_students (
           id,
           enrolled_date,
           student:students (
@@ -73,7 +72,7 @@ export async function GET(
         institutionId: cls.institution_id,
         institutionName: (cls.institutions as any)?.name || null,
         assignedTeacherId: cls.assigned_teacher_id,
-        assignedTeacherName: (cls.assigned_teacher as any)?.full_name || null,
+        assignedTeacherName: null,
         enrolledCount: enrolledStudents.length,
         students: enrolledStudents,
       }

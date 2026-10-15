@@ -17,7 +17,7 @@ export default async function ClassesPage() {
     .from('profiles')
     .select('id, role, institution_id')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   const isInstitution = profile?.role === 'institution'
   let institutionId = profile?.institution_id || null
@@ -31,7 +31,7 @@ export default async function ClassesPage() {
     if (inst) institutionId = inst.id
   }
 
-  // 2. Fetch classes with relations
+  // 2. Fetch classes (without invalid cross-schema relationship)
   const { data: classesData, error: classesError } = await supabase
     .from('classes')
     .select(`
@@ -47,7 +47,6 @@ export default async function ClassesPage() {
       assigned_teacher_id,
       created_at,
       institutions ( name ),
-      assigned_teacher:profiles!assigned_teacher_id ( id, full_name ),
       class_students ( id )
     `)
     .order('created_at', { ascending: false })
@@ -56,20 +55,19 @@ export default async function ClassesPage() {
     console.error('Error fetching classes:', classesError)
   }
 
-  // 3. Fetch teachers for institution assignment
+  // 3. Fetch teachers for institution assignment and mapping names
   let teachers: any[] = []
-  if (isInstitution && institutionId) {
-    const { data: teacherProfiles } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .eq('institution_id', institutionId)
-      .eq('role', 'institution_teacher')
+  const { data: teacherProfiles } = await supabase
+    .from('profiles')
+    .select('id, full_name')
+    .in('role', ['teacher', 'institution_teacher', 'solo_teacher'])
 
-    teachers = (teacherProfiles || []).map((t: any) => ({
-      id: t.id,
-      full_name: t.full_name || 'Instructor',
-    }))
-  }
+  teachers = (teacherProfiles || []).map((t: any) => ({
+    id: t.id,
+    full_name: t.full_name || 'Instructor',
+  }))
+
+  const teacherMap = Object.fromEntries(teachers.map(t => [t.id, t.full_name]))
 
   // 4. Fetch institution or teacher's students for quick enrollment in classes
   let studentsQuery = supabase
@@ -106,7 +104,9 @@ export default async function ClassesPage() {
     institution_id: cls.institution_id,
     assigned_teacher_id: cls.assigned_teacher_id,
     institutions: cls.institutions,
-    assigned_teacher: cls.assigned_teacher,
+    assigned_teacher: cls.assigned_teacher_id
+      ? { id: cls.assigned_teacher_id, full_name: teacherMap[cls.assigned_teacher_id] || 'Instructor' }
+      : null,
     class_students: cls.class_students || [],
   }))
 
