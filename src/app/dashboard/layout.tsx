@@ -52,7 +52,7 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .maybeSingle()
 
-  const isSuperAdmin = profile?.role === 'super_admin' || user.email === 'institute@noyeq.com'
+  const isSuperAdmin = profile?.role === 'super_admin' || user.email === 'admin@nexa.com'
   const userName = profile?.full_name || (isSuperAdmin ? 'Master Admin' : user.email?.split('@')[0] || 'User')
   const userRole = profile?.role || 'institution'
   const displayRole = isSuperAdmin ? 'Platform Admin' : userRole.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())

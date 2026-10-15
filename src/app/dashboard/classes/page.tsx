@@ -19,7 +19,7 @@ export default async function ClassesPage() {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isSuperAdmin = profile?.role === 'super_admin' || user.email === 'institute@noyeq.com'
+  const isSuperAdmin = profile?.role === 'super_admin' || user.email === 'admin@nexa.com'
   const isInstitution = profile?.role === 'institution' || isSuperAdmin
   let institutionId = profile?.institution_id || null
 

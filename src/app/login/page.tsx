@@ -58,8 +58,8 @@ export default async function LoginPage(props: {
                   id="email"
                   name="email"
                   type="email"
-                  defaultValue="institute@noyeq.com"
-                  placeholder="institute@noyeq.com"
+                  defaultValue="admin@nexa.com"
+                  placeholder="admin@nexa.com"
                   required
                   className="pl-10 h-11 bg-slate-50/50 border-slate-200 text-sm focus-visible:bg-white focus-visible:ring-blue-500 rounded-xl"
                 />
@@ -81,7 +81,7 @@ export default async function LoginPage(props: {
                   id="password"
                   name="password"
                   type="password"
-                  defaultValue="institute123"
+                  defaultValue="admin@nexa123"
                   placeholder="••••••••"
                   required
                   className="pl-10 h-11 bg-slate-50/50 border-slate-200 text-sm focus-visible:bg-white focus-visible:ring-blue-500 rounded-xl"
@@ -103,11 +103,11 @@ export default async function LoginPage(props: {
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-emerald-600" />
               <span>
-                Default login: <strong className="text-slate-800">institute@noyeq.com</strong>
+                Super Admin: <strong className="text-slate-800">admin@nexa.com</strong>
               </span>
             </div>
             <span className="text-[11px] px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-500 font-mono">
-              institute123
+              admin@nexa123
             </span>
           </div>
 
