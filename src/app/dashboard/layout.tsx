@@ -11,6 +11,11 @@ import {
   Bell,
   Sparkles,
   Search,
+  Building2,
+  ShieldCheck,
+  BarChart3,
+  Crown,
+  UserCheck,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -47,9 +52,10 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .maybeSingle()
 
-  const userName = profile?.full_name || user.email?.split('@')[0] || 'User'
+  const isSuperAdmin = profile?.role === 'super_admin' || user.email === 'institute@noyeq.com'
+  const userName = profile?.full_name || (isSuperAdmin ? 'Master Admin' : user.email?.split('@')[0] || 'User')
   const userRole = profile?.role || 'institution'
-  const displayRole = userRole.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+  const displayRole = isSuperAdmin ? 'Platform Admin' : userRole.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
   const initials = userName
     .split(' ')
     .map((n: string) => n[0])
@@ -64,21 +70,68 @@ export default async function DashboardLayout({
         <div className="flex flex-col h-full bg-white border-r border-slate-200/80 shadow-sm">
           {/* Brand Logo & Title */}
           <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-100">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-md shadow-blue-200 shrink-0">
-              <GraduationCap className="h-5 w-5 text-white" />
+            <div className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-md shrink-0 ${
+              isSuperAdmin
+                ? 'bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 shadow-purple-200'
+                : 'bg-gradient-to-br from-blue-600 to-indigo-600 shadow-blue-200'
+            }`}>
+              {isSuperAdmin ? (
+                <Crown className="h-5 w-5 text-amber-300" />
+              ) : (
+                <GraduationCap className="h-5 w-5 text-white" />
+              )}
             </div>
             <div className="overflow-hidden">
               <span className="text-base font-bold text-slate-900 tracking-tight block">Nexa-Edu</span>
-              <span className="text-[10px] font-semibold text-blue-600 uppercase tracking-widest block">
-                {displayRole} Portal
+              <span className={`text-[10px] font-bold uppercase tracking-widest block ${
+                isSuperAdmin ? 'text-indigo-600' : 'text-blue-600'
+              }`}>
+                {displayRole}
               </span>
             </div>
           </div>
 
           {/* Navigation Links */}
           <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+            {/* Platform Master Admin Section */}
+            {isSuperAdmin && (
+              <div className="mb-5 pb-4 border-b border-slate-100">
+                <div className="flex items-center justify-between px-3 mb-2">
+                  <p className="text-[10px] font-extrabold text-indigo-700 uppercase tracking-widest flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 text-indigo-600" />
+                    Platform Admin
+                  </p>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-amber-100 text-amber-800">
+                    MASTER
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <SidebarNavLink
+                    href="/dashboard/admin"
+                    icon={<LayoutDashboard className="h-4 w-4" />}
+                    label="Control Hub"
+                  />
+                  <SidebarNavLink
+                    href="/dashboard/admin/institutions"
+                    icon={<Building2 className="h-4 w-4" />}
+                    label="Institutes & Tiers"
+                  />
+                  <SidebarNavLink
+                    href="/dashboard/admin/teachers"
+                    icon={<UserCheck className="h-4 w-4" />}
+                    label="Teachers Directory"
+                  />
+                  <SidebarNavLink
+                    href="/dashboard/admin/reports"
+                    icon={<BarChart3 className="h-4 w-4" />}
+                    label="Usage & Reports"
+                  />
+                </div>
+              </div>
+            )}
+
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">
-              Main Menu
+              {isSuperAdmin ? 'Operations' : 'Main Menu'}
             </p>
             <SidebarNavLink
               href="/dashboard"
@@ -101,9 +154,9 @@ export default async function DashboardLayout({
               label="Teachers & Staff"
             />
 
-            <div className="pt-5">
+            <div className="pt-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">
-                Administration
+                Finances
               </p>
               <SidebarNavLink
                 href="/dashboard/payments"
@@ -157,6 +210,12 @@ export default async function DashboardLayout({
               <span className="h-2 w-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
               Connected to Supabase
             </Badge>
+            {isSuperAdmin && (
+              <Badge className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-xs border-0 shadow-xs flex items-center gap-1.5">
+                <Crown className="h-3 w-3 text-amber-300" />
+                Platform Master Admin
+              </Badge>
+            )}
           </div>
 
           {/* Right Header Icons */}

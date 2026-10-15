@@ -11,7 +11,9 @@ interface SidebarNavLinkProps {
 
 export default function SidebarNavLink({ href, icon, label }: SidebarNavLinkProps) {
   const pathname = usePathname()
-  const isActive = pathname === href
+  const isActive =
+    pathname === href ||
+    (href !== '/dashboard' && href !== '/dashboard/admin' && pathname.startsWith(href))
 
   return (
     <Link

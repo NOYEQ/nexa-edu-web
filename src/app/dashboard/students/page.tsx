@@ -21,7 +21,8 @@ export default async function StudentsPage() {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isInstitution = profile?.role === 'institution'
+  const isSuperAdmin = profile?.role === 'super_admin' || user.email === 'institute@noyeq.com'
+  const isInstitution = profile?.role === 'institution' || isSuperAdmin
   let institutionId = profile?.institution_id || null
 
   if (isInstitution && !institutionId) {
@@ -58,10 +59,12 @@ export default async function StudentsPage() {
     `)
     .order('created_at', { ascending: false })
 
-  if (isInstitution && institutionId) {
-    query = query.eq('institution_id', institutionId)
-  } else {
-    query = query.eq('teacher_id', user.id)
+  if (!isSuperAdmin) {
+    if (isInstitution && institutionId) {
+      query = query.eq('institution_id', institutionId)
+    } else {
+      query = query.eq('teacher_id', user.id)
+    }
   }
 
   const { data: studentsData, error: studentsError } = await query

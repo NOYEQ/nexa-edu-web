@@ -21,7 +21,8 @@ export default async function TeachersPage() {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isInstitution = profile?.role === 'institution'
+  const isSuperAdmin = profile?.role === 'super_admin' || user.email === 'institute@noyeq.com'
+  const isInstitution = profile?.role === 'institution' || isSuperAdmin
   let institutionId = profile?.institution_id || null
 
   if (isInstitution && !institutionId) {
@@ -40,7 +41,7 @@ export default async function TeachersPage() {
     .in('role', ['teacher', 'institution_teacher', 'solo_teacher'])
     .order('created_at', { ascending: false })
 
-  if (isInstitution && institutionId) {
+  if (!isSuperAdmin && isInstitution && institutionId) {
     teachersQuery = teachersQuery.eq('institution_id', institutionId)
   }
 
