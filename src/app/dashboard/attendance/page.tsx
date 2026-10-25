@@ -109,7 +109,7 @@ export default async function AttendancePage() {
   }
 
   // 4. Fetch initial attendance for today's date & first class
-  let initialAttendance: Record<string, AttendanceStatus> = {}
+  const initialAttendance: Record<string, AttendanceStatus> = {}
   if (initialClassId) {
     const { data: attData } = await supabase
       .from('attendance')

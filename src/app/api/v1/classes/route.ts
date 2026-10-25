@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    let query = supabase
+    const query = supabase
       .from('classes')
       .select(`
         id,
